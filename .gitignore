@@ -69,4 +69,4 @@ id_rsa.pub
 record/
 
 # For temperary development
-develop_ws
+/ros2_ws/compile_commands.json
