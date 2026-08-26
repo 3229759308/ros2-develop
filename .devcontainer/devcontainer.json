@@ -19,6 +19,11 @@
 	"containerEnv": {
 		"DISPLAY": "${localEnv:DISPLAY}"
 	},
+	"remoteEnv": {
+    "HTTP_PROXY": "http://127.0.0.1:7897",
+    "HTTPS_PROXY": "http://127.0.0.1:7897",
+    "NO_PROXY": "localhost,127.0.0.1,::1"
+	},
 	"runArgs": [
 		"--network",
 		"host"
@@ -37,7 +42,9 @@
 				// Code spell checking
 				"streetsidesoftware.code-spell-checker",
 				// Git enhancements
-				"mhutchie.git-graph"
+				"mhutchie.git-graph",
+				// ChatGPT for personal assistance
+				"openai.chatgpt",
 			]
 		}
 	}
