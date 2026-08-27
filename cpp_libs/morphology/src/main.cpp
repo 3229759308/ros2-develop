@@ -91,8 +91,25 @@ void testRectangularMask()
     {
         for (int x = 0; x < 7; ++x)
         {
-            const bool expected = x >= 1 && x <= 4 && y >= 2 && y <= 4;
+            const bool expected = x >= 2 && x <= 5 && y >= 2 && y <= 4;
             requirePixel(output, x, y, expected, "Rectangular mask");
+        }
+    }
+}
+
+void testAsymmetricMaskDirection()
+{
+    const StructuringElement element({{true, true, true}}, 0, 0);
+    Image input(7, 7);
+    input.setPixel(3, 3, 1);
+    const Image output = morphology::dilate(input, element);
+
+    for (int y = 0; y < 7; ++y)
+    {
+        for (int x = 0; x < 7; ++x)
+        {
+            const bool expected = y == 3 && x >= 3 && x <= 5;
+            requirePixel(output, x, y, expected, "Asymmetric mask direction");
         }
     }
 }
@@ -119,6 +136,7 @@ int main()
     testV1Regression();
     testCustomMask();
     testRectangularMask();
+    testAsymmetricMaskDirection();
     testInvalidInputs();
 
     std::cout << "All morphology V2 tests passed.\n";

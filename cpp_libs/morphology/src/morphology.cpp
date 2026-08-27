@@ -28,8 +28,8 @@ bool shouldBeForeground(
 
             const int dx = mask_x - anchor_x;
             const int dy = mask_y - anchor_y;
-            const int nx = x + dx;
-            const int ny = y + dy;
+            const int nx = x - dx;
+            const int ny = y - dy;
 
             if (input.isInside(nx, ny) && input.getPixel(nx, ny))
             {
