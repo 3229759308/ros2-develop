@@ -12,20 +12,22 @@ bool shouldBeForeground(
     int x,
     int y)
 {
-    const int center = static_cast<int>(element.getCenter());
+    const int element_width = static_cast<int>(element.getWidth());
+    const int element_height = static_cast<int>(element.getHeight());
+    const int anchor_x = static_cast<int>(element.getAnchorX());
+    const int anchor_y = static_cast<int>(element.getAnchorY());
 
-    for (int dy = -center; dy <= center; ++dy)
+    for (int mask_y = 0; mask_y < element_height; ++mask_y)
     {
-        for (int dx = -center; dx <= center; ++dx)
+        for (int mask_x = 0; mask_x < element_width; ++mask_x)
         {
-            const int mask_x = dx + center;
-            const int mask_y = dy + center;
-
             if (!element.isActive(mask_x, mask_y))
             {
                 continue;
             }
 
+            const int dx = mask_x - anchor_x;
+            const int dy = mask_y - anchor_y;
             const int nx = x + dx;
             const int ny = y + dy;
 
