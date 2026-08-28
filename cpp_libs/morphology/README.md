@@ -166,3 +166,23 @@ morphology 中承担类似滑动模板角色的是 `StructuringElement`，但两
 区别主要在局部区域内部采用的运算规则。卷积通常将局部像素与卷积核权重对应相乘
 后累加；二值图像的 dilation 更接近对结构元素 active 区域做最大值或逻辑 OR
 判断，而 erosion 更接近最小值或逻辑 AND 判断。
+
+## 可视化
+
+`morphology_visualizer` 是题目的选做 Qt6 Widgets demo。Qt 只属于 demo 层，不是
+morphology 核心依赖。界面包含 Input、Structuring Element、Dilation 和 Erosion
+四个区域。
+
+Ubuntu 24.04 可安装 Qt6 Widgets 开发依赖：
+
+```bash
+sudo apt install qt6-base-dev
+```
+
+构建并运行：
+
+```bash
+cmake -S . -B build
+cmake --build build
+./build/morphology_visualizer
+```
