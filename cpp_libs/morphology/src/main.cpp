@@ -129,6 +129,89 @@ void testAsymmetricMaskDirection()
     });
 }
 
+void testBasicSquareErosion()
+{
+    Image input(7, 7);
+    for (int y = 1; y <= 5; ++y)
+    {
+        for (int x = 1; x <= 5; ++x)
+        {
+            input.setPixel(x, y, 1);
+        }
+    }
+    const StructuringElement element(3);
+    const Image output = morphology::erodeOutputDriven(input, element);
+
+    for (int y = 0; y < 7; ++y)
+    {
+        for (int x = 0; x < 7; ++x)
+        {
+            const bool expected = x >= 2 && x <= 4 && y >= 2 && y <= 4;
+            requirePixel(output, x, y, expected, "Basic square erosion");
+        }
+    }
+}
+
+void testErosionBoundaryBehavior()
+{
+    Image input(5, 5);
+    for (int y = 0; y < 5; ++y)
+    {
+        for (int x = 0; x < 5; ++x)
+        {
+            input.setPixel(x, y, 1);
+        }
+    }
+    const StructuringElement element(3);
+    const Image output = morphology::erodeOutputDriven(input, element);
+
+    for (int y = 0; y < 5; ++y)
+    {
+        for (int x = 0; x < 5; ++x)
+        {
+            const bool expected = x >= 1 && x <= 3 && y >= 1 && y <= 3;
+            requirePixel(output, x, y, expected, "Erosion boundary behavior");
+        }
+    }
+}
+
+void testAsymmetricErosionDirection()
+{
+    Image input(7, 7);
+    input.setPixel(3, 3, 1);
+    input.setPixel(4, 3, 1);
+    input.setPixel(5, 3, 1);
+    const StructuringElement element({{true, true, true}}, 0, 0);
+    const Image output = morphology::erodeOutputDriven(input, element);
+
+    for (int y = 0; y < 7; ++y)
+    {
+        for (int x = 0; x < 7; ++x)
+        {
+            const bool expected = x == 3 && y == 3;
+            requirePixel(output, x, y, expected, "Asymmetric erosion direction");
+        }
+    }
+}
+
+void testInactiveErosionMaskUnit()
+{
+    Image input(7, 3);
+    input.setPixel(2, 1, 1);
+    input.setPixel(4, 1, 1);
+    const StructuringElement element({{true, false, true}}, 1, 0);
+    const Image output = morphology::erodeOutputDriven(input, element);
+
+    for (int y = 0; y < 3; ++y)
+    {
+        for (int x = 0; x < 7; ++x)
+        {
+            const bool expected = x == 3 && y == 1;
+            requirePixel(output, x, y, expected, "Inactive erosion mask unit");
+        }
+    }
+}
+
 void testInvalidInputs()
 {
     expectInvalidArgument([] { StructuringElement({}, 0, 0); }, "Empty mask");
@@ -152,6 +235,10 @@ int main()
     testCustomMask();
     testRectangularMask();
     testAsymmetricMaskDirection();
+    testBasicSquareErosion();
+    testErosionBoundaryBehavior();
+    testAsymmetricErosionDirection();
+    testInactiveErosionMaskUnit();
     testInvalidInputs();
 
     std::cout << "All morphology V2 tests passed.\n";

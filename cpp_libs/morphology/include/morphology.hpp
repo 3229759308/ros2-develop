@@ -14,4 +14,9 @@ namespace morphology
         const Image& input,
         const StructuringElement& element
     );
+
+    Image erodeOutputDriven(
+        const Image& input,
+        const StructuringElement& element
+    );
 }

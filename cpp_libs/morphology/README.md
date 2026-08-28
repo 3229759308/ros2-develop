@@ -125,3 +125,34 @@ q = p + (m - a)
 两种实现使用相同的 dilation 坐标关系，但遍历方向不同：output-driven 固定 `q`，
 反查 `p`；input-driven 固定 `p`，直接计算 `q`。稀疏前景时 input-driven 通常更有
 优势；密集前景时 output-driven 可能受益于 early return。
+
+## Erosion
+
+`morphology::erodeOutputDriven()` 使用 output-driven 方式实现腐蚀。对于当前正在
+判断的 output 点 `q`，将结构元素的 anchor 放到 `q`，再检查所有 active mask
+单元对应的 input 位置。只要发现一个位置为背景或越界，当前 output 点就是背景；
+只有所有 active 位置都为前景时，当前 output 点才为前景。inactive mask 单元不
+参与判断。
+
+mask 位置相对 anchor 的 offset 以及需要检查的 input 坐标为：
+
+```text
+d = m - a
+p = q + d
+p = q + (m - a)
+```
+
+其中：
+
+- `q` 是当前正在判断的 output 点。
+- `a` 是结构元素 anchor。
+- `m` 是当前 active mask 坐标。
+- `p` 是需要检查的 input 坐标。
+
+内部 `shouldBeForegroundAfterErosion()` 遍历 active mask 单元。发现对应的 `p`
+越界或为背景时立即 early return `false`；所有 active 单元都通过后才返回 `true`。
+图像外部按背景处理，因此结构元素延伸到图像外时不会错误保留边界前景。
+
+erosion 会让前景区域收缩。结构元素越大，通常腐蚀越明显；更换 mask 形状会改变
+腐蚀后的边缘形状。与 dilation 相比，dilation 满足任意一个覆盖条件即可成为前景，
+而 erosion 必须满足所有 active 条件才保留前景。
