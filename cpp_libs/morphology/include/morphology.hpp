@@ -5,7 +5,12 @@
 
 namespace morphology
 {
-    Image dilate(
+    Image dilateOutputDriven(
+        const Image& input,
+        const StructuringElement& element
+    );
+
+    Image dilateInputDriven(
         const Image& input,
         const StructuringElement& element
     );

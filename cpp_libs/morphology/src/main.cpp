@@ -37,21 +37,32 @@ void expectInvalidArgument(const std::function<void()>& operation, const std::st
     throw std::runtime_error(test_name + " did not reject invalid input");
 }
 
+void testDilationImplementations(
+    const Image& input,
+    const StructuringElement& element,
+    const std::string& test_name,
+    const std::function<void(const Image&, const std::string&)>& verify)
+{
+    verify(morphology::dilateOutputDriven(input, element), test_name + " (output-driven)");
+    verify(morphology::dilateInputDriven(input, element), test_name + " (input-driven)");
+}
+
 void testV1Regression()
 {
     Image input(7, 7);
     input.setPixel(3, 3, 1);
     const StructuringElement element(5);
-    const Image output = morphology::dilate(input, element);
-
-    for (int y = 0; y < 7; ++y)
-    {
-        for (int x = 0; x < 7; ++x)
+    testDilationImplementations(
+        input, element, "V1 regression", [](const Image& output, const std::string& test_name) {
+        for (int y = 0; y < 7; ++y)
         {
-            const bool expected = x >= 1 && x <= 5 && y >= 1 && y <= 5;
-            requirePixel(output, x, y, expected, "V1 regression");
+            for (int x = 0; x < 7; ++x)
+            {
+                const bool expected = x >= 1 && x <= 5 && y >= 1 && y <= 5;
+                requirePixel(output, x, y, expected, test_name);
+            }
         }
-    }
+    });
 }
 
 void testCustomMask()
@@ -65,14 +76,15 @@ void testCustomMask()
     const StructuringElement element(mask, 2, 2);
     Image input(7, 7);
     input.setPixel(3, 3, 1);
-    const Image output = morphology::dilate(input, element);
-
-    requirePixel(output, 1, 1, false, "Custom mask");
-    requirePixel(output, 5, 1, false, "Custom mask");
-    requirePixel(output, 1, 5, false, "Custom mask");
-    requirePixel(output, 5, 5, false, "Custom mask");
-    requirePixel(output, 3, 1, true, "Custom mask");
-    requirePixel(output, 1, 3, true, "Custom mask");
+    testDilationImplementations(
+        input, element, "Custom mask", [](const Image& output, const std::string& test_name) {
+        requirePixel(output, 1, 1, false, test_name);
+        requirePixel(output, 5, 1, false, test_name);
+        requirePixel(output, 1, 5, false, test_name);
+        requirePixel(output, 5, 5, false, test_name);
+        requirePixel(output, 3, 1, true, test_name);
+        requirePixel(output, 1, 3, true, test_name);
+    });
 
     const StructuringElement inactive_anchor({{true, false}}, 1, 0);
     require(!inactive_anchor.isActive(1, 0), "Inactive anchor was not preserved");
@@ -84,17 +96,19 @@ void testRectangularMask()
     const StructuringElement element(mask, 1, 1);
     Image input(7, 7);
     input.setPixel(3, 3, 1);
-    const Image output = morphology::dilate(input, element);
 
     require(element.getWidth() == 4 && element.getHeight() == 3, "Rectangular dimensions failed");
-    for (int y = 0; y < 7; ++y)
-    {
-        for (int x = 0; x < 7; ++x)
+    testDilationImplementations(
+        input, element, "Rectangular mask", [](const Image& output, const std::string& test_name) {
+        for (int y = 0; y < 7; ++y)
         {
-            const bool expected = x >= 2 && x <= 5 && y >= 2 && y <= 4;
-            requirePixel(output, x, y, expected, "Rectangular mask");
+            for (int x = 0; x < 7; ++x)
+            {
+                const bool expected = x >= 2 && x <= 5 && y >= 2 && y <= 4;
+                requirePixel(output, x, y, expected, test_name);
+            }
         }
-    }
+    });
 }
 
 void testAsymmetricMaskDirection()
@@ -102,16 +116,17 @@ void testAsymmetricMaskDirection()
     const StructuringElement element({{true, true, true}}, 0, 0);
     Image input(7, 7);
     input.setPixel(3, 3, 1);
-    const Image output = morphology::dilate(input, element);
-
-    for (int y = 0; y < 7; ++y)
-    {
-        for (int x = 0; x < 7; ++x)
+    testDilationImplementations(
+        input, element, "Asymmetric mask direction", [](const Image& output, const std::string& test_name) {
+        for (int y = 0; y < 7; ++y)
         {
-            const bool expected = y == 3 && x >= 3 && x <= 5;
-            requirePixel(output, x, y, expected, "Asymmetric mask direction");
+            for (int x = 0; x < 7; ++x)
+            {
+                const bool expected = y == 3 && x >= 3 && x <= 5;
+                requirePixel(output, x, y, expected, test_name);
+            }
         }
-    }
+    });
 }
 
 void testInvalidInputs()

@@ -1,7 +1,8 @@
 # Morphology
 
-当前模块提供独立于 ROS2 的 C++ 二值图像形态学实现。本文记录当前 dilation V2
-所使用的坐标约定和 output-driven（逐输出像素反查）算法。
+当前模块提供独立于 ROS2 的 C++ 二值图像形态学实现。当前 dilation V2 同时提供
+output-driven（逐输出像素反查）和 input-driven（逐输入前景像素“盖章”）实现，
+本文记录两者共用的坐标约定和算法关系。
 
 ## 坐标定义
 
@@ -34,8 +35,8 @@ q = p + d
 
 即输入位置 `p` 通过 active mask 位置对应的 offset `d`，在输出位置 `q` 产生前景。
 
-当前 `morphology::dilate()` 不是逐输入前景像素向输出“盖章”，而是逐个判断输出
-像素 `q`。因此 `shouldBeForeground()` 需要反推出可能产生当前输出的输入位置：
+`morphology::dilateOutputDriven()` 不是逐输入前景像素向输出“盖章”，而是逐个判断
+输出像素 `q`。因此 `shouldBeForeground()` 需要反推出可能产生当前输出的输入位置：
 
 ```text
 p = q - d
@@ -76,7 +77,7 @@ const int ny = y - dy;
 该流程只通过 `StructuringElement` 的只读接口访问结构元素，支持任意合法的矩形
 mask、非对称 mask 和 anchor。
 
-## 复杂度
+## Output-driven 复杂度
 
 设图像宽高为 `W`、`H`，结构元素宽高为 `M_w`、`M_h`。最坏情况下，每个输出
 像素都要扫描完整 mask，因此时间复杂度为：
@@ -91,14 +92,36 @@ O(W * H * M_w * M_h)
 停止当前输出像素剩余的 mask 扫描。因此前景分布、active mask 的分布及遍历顺序
 都会影响实际检查次数，但不会改变上述最坏时间复杂度。
 
-## 后续：input-driven 盖章版
+## Input-driven 盖章版
 
-后续计划另写一份 input-driven（逐输入前景像素“盖章”）算法说明。该版本将从每个
-输入前景位置 `p` 出发，对所有 active offset 直接使用正向关系：
+`morphology::dilateInputDriven()` 当前已实现 input-driven（逐输入前景像素
+“盖章”）算法。核心流程如下：
+
+1. 遍历 input，寻找前景像素 `p`。
+2. 只有 `p` 为前景时才遍历 `StructuringElement`。
+3. 只处理 active mask 单元，并将 anchor 对准 `p`。
+4. 根据坐标关系计算 output 位置，若未越界则写为前景。
+
+对于当前 active mask 坐标，先计算它相对 anchor 的 offset：
+
+```text
+d = m - a
+```
+
+再从 input 前景点直接计算最终写入位置：
 
 ```text
 q = p + d
+q = p + (m - a)
 ```
 
-当前阶段仅记录这一方向，不实现 input-driven 版本，也不改变现有 output-driven
-实现。
+其中：
+
+- `p` 是 input 前景点。
+- `a` 是结构元素 anchor。
+- `m` 是当前 active mask 坐标。
+- `q` 是最终写入的 output 坐标。
+
+两种实现使用相同的 dilation 坐标关系，但遍历方向不同：output-driven 固定 `q`，
+反查 `p`；input-driven 固定 `p`，直接计算 `q`。稀疏前景时 input-driven 通常更有
+优势；密集前景时 output-driven 可能受益于 early return。
