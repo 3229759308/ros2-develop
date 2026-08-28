@@ -76,7 +76,7 @@ bool shouldBeForegroundAfterErosion(
     return true;
 }
 
-void stampStructuringElement(
+void stampStructuringElementForDilation(
     const StructuringElement& element,
     Image& output,
     int x,
@@ -163,7 +163,7 @@ Image morphology::dilateInputDriven(
         {
             if (input.getPixel(static_cast<int>(x), static_cast<int>(y)))
             {
-                stampStructuringElement(element, output, static_cast<int>(x), static_cast<int>(y));
+                stampStructuringElementForDilation(element, output, static_cast<int>(x), static_cast<int>(y));
             }
         }
     }
