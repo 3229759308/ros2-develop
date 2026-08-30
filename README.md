@@ -4,6 +4,10 @@ RoboMaster-南京理工大学Alliance战队2026赛季培训使用
 
 本质上是RMCS项目 (https://github.com/Alliance-Algorithm/RMCS) 去除了全部的ros2包，提供一个docker启动的ROS2开发环境，供2026赛季算法组培训成员作业使用
 
+## Week 1 Task 1 - ROS2 Publisher / Subscriber
+
+已完成 `week1_pubsub` 包的 ROS2 publisher 与 subscriber 节点，并完成编译和运行验证。`week1_publisher` 通过 `week1_topic` 发布 `std_msgs::msg::String` 消息，`week1_subscriber` 接收消息并使用 ROS2 Logger 输出收到的数据。
+
 ## Week 1 Task 2 - Foxglove Visualization
 
 使用 `foxglove_bridge` 完成了 `week1_task2_signal` 的可视化验收。Bridge 默认监听 `8765` 端口，Windows 本机 Foxglove 通过 `ws://localhost:8765` 成功连接。
@@ -15,6 +19,8 @@ RoboMaster-南京理工大学Alliance战队2026赛季培训使用
 - `/processor_signal`
 
 Foxglove Plot 面板最终显示的数据系列为 `/processor_signal.data`，消息类型为 `std_msgs::msg::Float32`。处理后的波形能够持续稳定显示，且符合预期逻辑：`sin_o` 与 `rec_o` 同号时保留原始正弦值，异号时输出 `0`。
+
+![Week 1 Task 2 Foxglove visualization](docs/images/week1_task2_foxglove.png)
 
 输入正弦波频率为 10 Hz，方波频率为 1 Hz，方波每 0.5 s 翻转一次。因此，一个方波半周期内约有 5 个完整正弦周期。实际观察到正方波期间保留正半周、负方波期间保留负半周，波形周期性重复，与该周期关系一致。
 
