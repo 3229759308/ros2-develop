@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cmath>
 #include <memory>
 
 #include "rclcpp/rclcpp.hpp"

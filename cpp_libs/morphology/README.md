@@ -8,7 +8,8 @@ output-driven（逐输出像素反查）和 input-driven（逐输入前景像素
 
 - `input`：输入二值图像。输入前景像素的位置记为 `p = (p_x, p_y)`。
 - `output`：与输入图像尺寸相同的输出图像。当前正在判断的输出位置记为
-  `q = (q_x, q_y)`，在代码中对应传给 `shouldBeForeground()` 的 `x`、`y`。
+  `q = (q_x, q_y)`，在代码中对应传给 `shouldBeForegroundAfterDilation()` 的
+  `x`、`y`。
 - `mask`：`StructuringElement` 内部的二维布尔矩形。mask 坐标记为
   `m = (mask_x, mask_y)`；`isActive(mask_x, mask_y)` 表示该位置是否参与膨胀。
 - `anchor`：结构元素与图像像素对齐的参考位置，记为
@@ -36,7 +37,8 @@ q = p + d
 即输入位置 `p` 通过 active mask 位置对应的 offset `d`，在输出位置 `q` 产生前景。
 
 `morphology::dilateOutputDriven()` 不是逐输入前景像素向输出“盖章”，而是逐个判断
-输出像素 `q`。因此 `shouldBeForeground()` 需要反推出可能产生当前输出的输入位置：
+输出像素 `q`。因此 `shouldBeForegroundAfterDilation()` 需要反推出可能产生当前
+输出的输入位置：
 
 ```text
 p = q - d
@@ -44,20 +46,20 @@ input_x = output_x - dx
 input_y = output_y - dy
 ```
 
-在当前代码中，`output_x`、`output_y` 是 `shouldBeForeground()` 的 `x`、`y`，
-反查得到的输入坐标保存在 `nx`、`ny` 中：
+在当前代码中，`output_x`、`output_y` 是 `shouldBeForegroundAfterDilation()` 的
+`x`、`y`，反查得到的输入坐标保存在 `input_x`、`input_y` 中：
 
 ```cpp
 const int dx = mask_x - anchor_x;
 const int dy = mask_y - anchor_y;
-const int nx = x - dx;
-const int ny = y - dy;
+const int input_x = x - dx;
+const int input_y = y - dy;
 ```
 
 减号是非对称结构元素方向正确的关键。对称 mask 即使误用相反方向，镜像后的形状
 也可能不变，因此不能只依靠对称结构元素验证坐标关系。
 
-## `shouldBeForeground()` 执行流程
+## `shouldBeForegroundAfterDilation()` 执行流程
 
 对于输出位置 `(x, y)`，当前实现按以下顺序判断：
 
@@ -67,11 +69,12 @@ const int ny = y - dy;
 3. 若 `element.isActive(mask_x, mask_y)` 为 false，跳过该 mask 位置。
 4. 对 active 位置计算 `dx = mask_x - anchor_x` 和
    `dy = mask_y - anchor_y`。
-5. 使用 `nx = x - dx`、`ny = y - dy` 反查对应的 input 坐标。
-6. 先调用 `input.isInside(nx, ny)` 检查边界。越界位置被忽略，等价于图像外部
-   恒为背景 0，不使用异常处理正常的边界扫描。
-7. 如果任意一个合法的对应输入位置满足 `input.getPixel(nx, ny) == true`，立即
-   early return `true`，当前输出像素被设为前景。
+5. 使用 `input_x = x - dx`、`input_y = y - dy` 反查对应的 input 坐标。
+6. 先调用 `input.isInside(input_x, input_y)` 检查边界。越界位置被忽略，等价于
+   图像外部恒为背景 0，不使用异常处理正常的边界扫描。
+7. 如果任意一个合法的对应输入位置满足
+   `input.getPixel(input_x, input_y) == true`，立即 early return `true`，当前输出
+   像素被设为前景。
 8. 所有 active mask 位置均未找到输入前景时返回 `false`，输出像素保持背景 0。
 
 该流程只通过 `StructuringElement` 的只读接口访问结构元素，支持任意合法的矩形
@@ -126,6 +129,23 @@ q = p + (m - a)
 反查 `p`；input-driven 固定 `p`，直接计算 `q`。稀疏前景时 input-driven 通常更有
 优势；密集前景时 output-driven 可能受益于 early return。
 
+## 题目中的 dilation2
+
+普通 5×5 全 active `StructuringElement` 会产生较方正的膨胀效果。若希望得到题目中
+`dilation2` 一类更圆滑、带圆角的效果，不需要修改 dilation 主算法，只需替换
+`StructuringElement` 的 mask。当前测试已使用以下圆角结构元素：
+
+```text
+0 1 1 1 0
+1 1 1 1 1
+1 1 1 1 1
+1 1 1 1 1
+0 1 1 1 0
+```
+
+四个角为 inactive，不参与膨胀，因此最终外形与全 1 方形 mask 不同。当前
+`StructuringElement` 的可替换设计正是用于支持这类效果。
+
 ## Erosion
 
 `morphology::erodeOutputDriven()` 使用 output-driven 方式实现腐蚀。对于当前正在
@@ -173,16 +193,27 @@ morphology 中承担类似滑动模板角色的是 `StructuringElement`，但两
 morphology 核心依赖。界面包含 Input、Structuring Element、Dilation 和 Erosion
 四个区域。
 
-Ubuntu 24.04 可安装 Qt6 Widgets 开发依赖：
+核心 morphology 测试默认不构建 visualizer，也不需要安装 Qt6：
+
+```bash
+cd cpp_libs/morphology
+cmake -S . -B build
+cmake --build build
+./build/main
+```
+
+只有启用 `BUILD_VISUALIZER=ON` 时才需要 Qt6。Ubuntu 24.04 可安装 Qt6 Widgets
+开发依赖：
 
 ```bash
 sudo apt install qt6-base-dev
 ```
 
-构建并运行：
+启用、构建并运行 Qt visualizer：
 
 ```bash
-cmake -S . -B build
+cd cpp_libs/morphology
+cmake -S . -B build -DBUILD_VISUALIZER=ON
 cmake --build build
 ./build/morphology_visualizer
 ```
